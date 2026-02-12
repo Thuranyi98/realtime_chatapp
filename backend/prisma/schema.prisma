@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  password     String
+  role         Role       @default(USER)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  sentMessages     Message[] @relation("MessageSender")
+  receivedMessages Message[] @relation("MessageReceiver")
+
+  adminRooms ChatRoom[] @relation("AdminRooms")
+  userRooms  ChatRoom[] @relation("UserRooms")
+}
+
+model ChatRoom {
+  id        String   @id @default(cuid())
+  userId    String
+  adminId   String
+  createdAt DateTime @default(now())
+
+  user  User @relation("UserRooms", fields: [userId], references: [id])
+  admin User @relation("AdminRooms", fields: [adminId], references: [id])
+
+  messages Message[]
+
+  @@unique([userId, adminId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  content    String
+  senderId   String
+  receiverId String
+  timestamp  DateTime @default(now())
+  roomId     String
+
+  sender   User     @relation("MessageSender", fields: [senderId], references: [id])
+  receiver User     @relation("MessageReceiver", fields: [receiverId], references: [id])
+  room     ChatRoom @relation(fields: [roomId], references: [id])
+
+  @@index([roomId, timestamp])
+  @@index([senderId])
+  @@index([receiverId])
+}
